@@ -2,34 +2,44 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FileStore } from '../../src/storage/file-store';
 
-// Mock外部依赖
-const mockReadFile = vi.fn();
-const mockWriteFile = vi.fn();
-const mockMkdir = vi.fn();
-const mockAccess = vi.fn();
-const mockUnlink = vi.fn();
-const mockJoin = vi.fn();
-const mockDirname = vi.fn();
-const mockYamlLoad = vi.fn();
-const mockYamlDump = vi.fn();
+// 简单的模拟实现
+vi.mock('fs/promises', async () => {
+  const actual = await vi.importActual('fs/promises');
+  return {
+    ...actual,
+    readFile: vi.fn(),
+    writeFile: vi.fn(),
+    mkdir: vi.fn(),
+    access: vi.fn(),
+    unlink: vi.fn(),
+  };
+});
 
-vi.mock('fs/promises', () => ({
-  readFile: mockReadFile,
-  writeFile: mockWriteFile,
-  mkdir: mockMkdir,
-  access: mockAccess,
-  unlink: mockUnlink,
-}));
+vi.mock('path', async () => {
+  const actual = await vi.importActual('path');
+  return {
+    ...actual,
+    join: vi.fn((...args) => args.join('/')),
+    dirname: vi.fn((filePath) => filePath.split('/').slice(0, -1).join('/')),
+  };
+});
 
-vi.mock('path', () => ({
-  join: mockJoin,
-  dirname: mockDirname,
-}));
+vi.mock('js-yaml', async () => {
+  const actual = await vi.importActual('js-yaml');
+  return {
+    ...actual,
+    load: vi.fn(),
+    dump: vi.fn(),
+  };
+});
 
-vi.mock('js-yaml', () => ({
-  load: mockYamlLoad,
-  dump: mockYamlDump,
-}));
+vi.mock('glob', async () => {
+  const actual = await vi.importActual('glob');
+  return {
+    ...actual,
+    glob: vi.fn(),
+  };
+});
 
 describe('FileStore', () => {
   let fileStore: FileStore;
@@ -38,46 +48,51 @@ describe('FileStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fileStore = new FileStore({ pclHome: mockPclHome });
-    
-    // 设置path.join的默认行为
-    mockJoin.mockImplementation((...args) => args.join('/'));
-    mockDirname.mockImplementation((filePath) => filePath.split('/').slice(0, -1).join('/'));
   });
 
   it('should read YAML file', async () => {
     const mockYamlContent = 'name: Test\nvalue: 123';
     const mockParsedData = { name: 'Test', value: 123 };
     
-    mockReadFile.mockResolvedValue(mockYamlContent);
-    mockYamlLoad.mockReturnValue(mockParsedData);
+    const fsPromises = await import('fs/promises');
+    const yaml = await import('js-yaml');
+    
+    vi.mocked(fsPromises.readFile).mockResolvedValue(mockYamlContent);
+    vi.mocked(yaml.load).mockReturnValue(mockParsedData);
 
     const result = await fileStore.readYaml('test.yaml');
 
     expect(result).toEqual(mockParsedData);
-    expect(mockReadFile).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`, 'utf-8');
-    expect(mockYamlLoad).toHaveBeenCalledWith(mockYamlContent);
+    expect(fsPromises.readFile).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`, 'utf-8');
+    expect(yaml.load).toHaveBeenCalledWith(mockYamlContent);
   });
 
   it('should write YAML file', async () => {
     const testData = { name: 'Test', value: 123 };
     const expectedYaml = 'name: Test\nvalue: 123\n'; // js-yaml adds trailing newline
     
-    mockMkdir.mockResolvedValue();
-    mockWriteFile.mockResolvedValue();
-    mockYamlDump.mockReturnValue(expectedYaml);
+    const fsPromises = await import('fs/promises');
+    const yaml = await import('js-yaml');
+    const pathModule = await import('path');
+    
+    vi.mocked(fsPromises.mkdir).mockResolvedValue();
+    vi.mocked(fsPromises.writeFile).mockResolvedValue();
+    vi.mocked(yaml.dump).mockReturnValue(expectedYaml);
+    vi.mocked(pathModule.join).mockImplementation((...args) => args.join('/'));
 
     await fileStore.writeYaml('test.yaml', testData);
 
-    expect(mockMkdir).toHaveBeenCalledWith(`${mockPclHome}`, { recursive: true });
-    expect(mockYamlDump).toHaveBeenCalledWith(testData, { lineWidth: -1 });
-    expect(mockWriteFile).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`, expectedYaml, 'utf-8');
+    expect(fsPromises.mkdir).toHaveBeenCalledWith(`${mockPclHome}`, { recursive: true });
+    expect(yaml.dump).toHaveBeenCalledWith(testData, { lineWidth: -1 });
+    expect(fsPromises.writeFile).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`, expectedYaml, 'utf-8');
   });
 
   it('should throw error for oversized YAML file', async () => {
     const largeData = { data: 'x'.repeat(101 * 1024) }; // >100KB
     const largeYamlString = 'x'.repeat(101 * 1024);
     
-    mockYamlDump.mockReturnValue(largeYamlString);
+    const yaml = await import('js-yaml');
+    vi.mocked(yaml.dump).mockReturnValue(largeYamlString);
 
     await expect(fileStore.writeYaml('test.yaml', largeData)).rejects.toThrow('exceeds 100KB size limit');
   });
@@ -85,40 +100,47 @@ describe('FileStore', () => {
   it('should read Markdown file', async () => {
     const mockMdContent = '# Test\nThis is a test.';
     
-    mockReadFile.mockResolvedValue(mockMdContent);
+    const fsPromises = await import('fs/promises');
+    vi.mocked(fsPromises.readFile).mockResolvedValue(mockMdContent);
 
     const result = await fileStore.readMd('test.md');
 
     expect(result).toBe(mockMdContent);
-    expect(mockReadFile).toHaveBeenCalledWith(`${mockPclHome}/test.md`, 'utf-8');
+    expect(fsPromises.readFile).toHaveBeenCalledWith(`${mockPclHome}/test.md`, 'utf-8');
   });
 
   it('should write Markdown file', async () => {
     const content = '# Test\nThis is a test.';
     
-    mockMkdir.mockResolvedValue();
-    mockWriteFile.mockResolvedValue();
+    const fsPromises = await import('fs/promises');
+    const pathModule = await import('path');
+    
+    vi.mocked(fsPromises.mkdir).mockResolvedValue();
+    vi.mocked(fsPromises.writeFile).mockResolvedValue();
+    vi.mocked(pathModule.join).mockImplementation((...args) => args.join('/'));
 
     await fileStore.writeMd('test.md', content);
 
-    expect(mockMkdir).toHaveBeenCalledWith(`${mockPclHome}`, { recursive: true });
-    expect(mockWriteFile).toHaveBeenCalledWith(`${mockPclHome}/test.md`, content, 'utf-8');
+    expect(fsPromises.mkdir).toHaveBeenCalledWith(`${mockPclHome}`, { recursive: true });
+    expect(fsPromises.writeFile).toHaveBeenCalledWith(`${mockPclHome}/test.md`, content, 'utf-8');
   });
 
   it('should check if file exists', async () => {
-    mockAccess.mockResolvedValue();
+    const fsPromises = await import('fs/promises');
+    vi.mocked(fsPromises.access).mockResolvedValue();
 
     const result = await fileStore.exists('test.yaml');
 
     expect(result).toBe(true);
-    expect(mockAccess).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`);
+    expect(fsPromises.access).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`);
   });
 
   it('should return false if file does not exist', async () => {
     const error = new Error('File not found') as NodeJS.ErrnoException;
     error.code = 'ENOENT';
     
-    mockAccess.mockRejectedValue(error);
+    const fsPromises = await import('fs/promises');
+    vi.mocked(fsPromises.access).mockRejectedValue(error);
 
     const result = await fileStore.exists('test.yaml');
 
@@ -126,10 +148,11 @@ describe('FileStore', () => {
   });
 
   it('should delete a file', async () => {
-    mockUnlink.mockResolvedValue();
+    const fsPromises = await import('fs/promises');
+    vi.mocked(fsPromises.unlink).mockResolvedValue();
 
     await fileStore.delete('test.yaml');
 
-    expect(mockUnlink).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`);
+    expect(fsPromises.unlink).toHaveBeenCalledWith(`${mockPclHome}/test.yaml`);
   });
 });

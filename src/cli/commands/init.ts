@@ -3,8 +3,10 @@ import { existsSync } from 'fs';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { simpleGit } from 'simple-git';
 import { getPclHome } from '../../utils/path-utils';
+import { FileStore } from '../../storage/file-store';
+import { ConfigManager } from '../../storage/config-manager';
+import { GitManager } from '../../storage/git-manager';
 
 const DEFAULT_CONFIG = `version: "1.0"
 
@@ -70,11 +72,13 @@ export async function initCommand(options: { force?: boolean } = {}): Promise<vo
     await writeFile(path.join(pclHome, "contexts/user-profile.yaml"), USER_PROFILE_TEMPLATE);
     await writeFile(path.join(pclHome, "contexts/global.yaml"), GLOBAL_CONTEXT_TEMPLATE);
 
-    // 初始化 Git
-    const git = simpleGit(pclHome);
-    await git.init();
-    await git.add(".");
-    await git.commit("[pcl] Initial setup");
+    // 初始化配置管理器和Git管理器
+    const fileStore = new FileStore({ pclHome });
+    const configManager = new ConfigManager(fileStore);
+    await configManager.initialize();
+    
+    const gitManager = new GitManager(pclHome, configManager);
+    await gitManager.init();
 
     console.log(chalk.green("✅ PCL 已初始化"));
     console.log(`   目录：${pclHome}`);

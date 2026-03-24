@@ -76,9 +76,13 @@ export class ContextStore {
       const files = await this.fileStore.listFiles('contexts/projects/*.yaml');
       const projects: ProjectSummary[] = [];
 
-      for (const file of files) {
+      for (const filePath of files) {
         try {
-          const project = await this.fileStore.readYaml<ProjectContext>(file);
+          // 获取文件名（不含扩展名），作为项目ID
+          const fileName = filePath.split('/').pop()?.replace('.yaml', '');
+          if (!fileName) continue;
+          
+          const project = await this.fileStore.readYaml<ProjectContext>(`contexts/projects/${fileName}.yaml`);
           projects.push({
             id: project.id,
             name: project.name || project.id,
@@ -86,7 +90,7 @@ export class ContextStore {
             updated_at: project.updated_at
           });
         } catch (error) {
-          console.warn(`Failed to read project file ${file}:`, error);
+          console.warn(`Failed to read project file ${filePath}:`, error);
         }
       }
 
@@ -182,10 +186,15 @@ export class ContextStore {
       } else if (parts[0] === 'projects' && parts.length >= 3) {
         // 项目上下文操作
         const projectId = parts[1];
-        const project = await this.getProject(projectId);
+        let project = await this.getProject(projectId);
         
+        // 如果项目不存在，自动创建一个基本项目
         if (!project) {
-          throw new Error(`Project '${projectId}' does not exist`);
+          await this.createProject(projectId, { name: projectId });
+          project = await this.getProject(projectId);
+          if (!project) {
+            throw new Error(`Failed to create project '${projectId}'`);
+          }
         }
         
         const container = this.getNestedValue(project, parts.slice(2, -2).join('.')) || {};
@@ -208,10 +217,15 @@ export class ContextStore {
       } else if (parts[0] === 'projects' && parts.length >= 3) {
         // 项目上下文操作
         const projectId = parts[1];
-        const project = await this.getProject(projectId);
+        let project = await this.getProject(projectId);
         
+        // 如果项目不存在，自动创建一个基本项目
         if (!project) {
-          throw new Error(`Project '${projectId}' does not exist`);
+          await this.createProject(projectId, { name: projectId });
+          project = await this.getProject(projectId);
+          if (!project) {
+            throw new Error(`Failed to create project '${projectId}'`);
+          }
         }
         
         this.setNestedValue(project, parts.slice(2).join('.'), value);

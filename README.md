@@ -45,6 +45,7 @@ pcl list projects
 - `pcl set <path> <value>`: 设置上下文字段
 - `pcl get <path>`: 获取上下文字段
 - `pcl list [type]`: 列出项目或记忆
+- `pcl project create <id> [options]`: 创建新项目
 - `pcl mcp`: 启动 MCP 服务器
 
 ## 架构

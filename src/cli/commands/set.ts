@@ -3,13 +3,19 @@ import chalk from 'chalk';
 import { ContextStore } from '../../core/context-store';
 import { FileStore } from '../../storage/file-store';
 import { GitManager } from '../../storage/git-manager';
+import { ConfigManager } from '../../storage/config-manager';
 import { getPclHome } from '../../utils/path-utils';
 
 export async function setCommand(path: string, value: string, options: { project?: string } = {}): Promise<void> {
   try {
     const pclHome = getPclHome();
     const fileStore = new FileStore({ pclHome });
-    const gitManager = new GitManager(pclHome, null as any); // 临时null，实际使用时会传入正确的configManager
+    const configManager = new ConfigManager(fileStore);
+    await configManager.initialize(); // 确保配置已初始化
+    
+    const gitManager = new GitManager(pclHome, configManager);
+    await gitManager.init(); // 初始化Git管理器
+    
     const contextStore = new ContextStore(fileStore, gitManager);
 
     // 解析值，尝试解析为JSON，否则作为字符串
