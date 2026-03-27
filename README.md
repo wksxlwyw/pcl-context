@@ -2,6 +2,8 @@
 
 Persistent Context Layer (PCL) 是一个让 AI 助手记住上下文的工具，通过本地文件存储和 MCP 协议实现。
 
+[English Version](README.en.md) | [中文版本](README.md)
+
 ## 功能特性
 
 - **本地优先**: 所有数据存储在 `~/.pcl/` 目录
@@ -41,12 +43,28 @@ pcl list projects
 
 ## CLI 命令
 
+### 基础命令
 - `pcl init`: 初始化 PCL
 - `pcl set <path> <value>`: 设置上下文字段
 - `pcl get <path>`: 获取上下文字段
 - `pcl list [type]`: 列出项目或记忆
+
+### 项目管理
 - `pcl project create <id> [options]`: 创建新项目
-- `pcl mcp`: 启动 MCP 服务器
+
+### 上下文注入
+- `pcl inject [query]`: 智能上下文注入
+- `pcl remember <text>`: 保存记忆
+- `pcl recall [query]`: 检索记忆
+
+### 版本控制 (Phase 3)
+- `pcl history`: 查看上下文变更历史
+- `pcl diff [ref1] [ref2]`: 查看差异对比
+- `pcl rollback <ref>`: 回滚到指定版本
+- `pcl snapshot <name>`: 创建命名快照
+
+### MCP 集成
+- `pcl mcp`: 启动 MCP 服务器 (stdio 模式)
 
 ## 架构
 
@@ -115,6 +133,32 @@ npm test
 npm run dev
 ```
 
+## 开发
+
+# 安装依赖
+npm install
+
+# 构建项目
+npm run build
+
+# 运行测试
+npm test
+
+# 开发模式
+npm run dev
+
+## 贡献
+
+我们欢迎贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何参与。
+
 ## 许可证
 
-MIT
+[MIT License](LICENSE)
+
+## 隐私声明
+
+PCL 是一个**本地优先**的工具：
+- 所有数据存储在本地 `~/.pcl/` 目录
+- 不会将任何数据发送到云端
+- 完全开源，你可以审查所有代码
+- 适用于对隐私有高要求的场景
