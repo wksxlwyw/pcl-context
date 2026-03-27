@@ -2,6 +2,8 @@
 
 Persistent Context Layer (PCL) is a tool that helps AI assistants remember context through local file storage and MCP protocol integration.
 
+[English Version](README.en.md) | [中文版本](README.md)
+
 ## Features
 
 - **Local-First**: All data stored in `~/.pcl/` directory
