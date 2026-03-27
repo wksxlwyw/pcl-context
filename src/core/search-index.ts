@@ -26,7 +26,7 @@ export class SearchIndex {
     }
 
     // FlexSearch v0.7.x 的 Document API 使用方式
-    this.index = new (flexsearch.Document)({
+    this.index = new (flexsearch as any).Document({
       id: 'id',
       index: ['content', 'tags', 'projectId'],
       store: ['content', 'tags', 'projectId', 'type', 'updatedAt'],
@@ -44,7 +44,7 @@ export class SearchIndex {
     await this.ensureInitialized();
     
     // 清空现有索引
-    this.index = new flexsearch.Document({
+    this.index = new (flexsearch as any).Document({
       document: {
         id: 'id',
         index: ['content', 'tags', 'projectId'],

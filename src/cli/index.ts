@@ -8,6 +8,10 @@ import { createCommand } from './commands/project/create';
 import { injectCommand } from './commands/inject';
 import { rememberCommand } from './commands/remember';
 import { recallCommand } from './commands/recall';
+import { registerHistoryCommand } from './commands/history';
+import { registerDiffCommand } from './commands/diff';
+import { registerRollbackCommand } from './commands/rollback';
+import { registerSnapshotCommand } from './commands/snapshot';
 import { startMcpServer } from '../mcp/server';
 
 const program = new Command();
@@ -101,4 +105,13 @@ program
   .description("启动 MCP Server（stdio 模式）")
   .action(startMcpServer);
 
-program.parse();
+// Phase 3: Git 版本控制命令
+registerHistoryCommand(program);
+registerDiffCommand(program);
+registerRollbackCommand(program);
+registerSnapshotCommand(program);
+
+program.parseAsync().catch((error) => {
+  console.error(`Error: ${error.message}`);
+  process.exit(1);
+});

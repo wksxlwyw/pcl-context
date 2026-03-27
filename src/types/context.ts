@@ -1,4 +1,14 @@
 // src/types/context.ts
+//
+// Canonical type definitions for ContextChunk, ScoredChunk, and IndexDocument
+// now live in types/mcp.ts. Re-export them here for backward compatibility.
+//
+export type {
+  ContextChunk,
+  ScoredChunk,
+  IndexDocument,
+} from './mcp.js';
+
 export interface UserProfile {
   name?: string;
   role?: string;
@@ -13,6 +23,9 @@ export interface UserProfile {
     code_comments?: string;
     documentation?: string;
   };
+  // Allow dynamic UserProfile fields from YAML
+  communication_style?: string;
+  code_style?: string;
   [key: string]: unknown;
 }
 
@@ -49,27 +62,4 @@ export interface ProjectSummary {
   name: string;
   description?: string;
   updated_at?: string;
-}
-
-export interface ContextChunk {
-  id: string;
-  projectId?: string;
-  type: 'project' | 'memory' | 'session' | 'user-profile';
-  content: string;
-  tags?: string[];
-  updatedAt: string;
-  searchScore?: number;
-}
-
-export interface ScoredChunk extends ContextChunk {
-  finalScore: number;
-}
-
-export interface IndexDocument {
-  id: string;
-  content: string;
-  projectId?: string;
-  tags?: string[];
-  type: string;
-  updatedAt: string;
 }

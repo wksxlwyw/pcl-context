@@ -1,4 +1,14 @@
 // src/types/config.ts
+//
+// Canonical type definitions for MemoryEntry, RememberOptions, RecallQuery
+// now live in types/mcp.ts. Re-export them here for backward compatibility.
+//
+export type {
+  MemoryEntry,
+  RememberOptions,
+  RecallQuery,
+} from './mcp.js';
+
 export interface Config {
   version: string;
   injection: {
@@ -52,29 +62,6 @@ export interface DiffChange {
 
 export interface RollbackOptions {
   projectPath?: string;
-}
-
-export interface RememberOptions {
-  projectId?: string;
-  tags?: string[];
-  source?: string;
-}
-
-export interface RecallQuery {
-  text?: string;
-  projectId?: string;
-  tags?: string[];
-  since?: Date;
-  limit?: number;
-}
-
-export interface MemoryEntry {
-  id: string;
-  content: string;
-  projectId?: string;
-  tags?: string[];
-  source?: string;
-  createdAt: string;
 }
 
 export interface SessionSummary {

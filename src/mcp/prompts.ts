@@ -1,5 +1,6 @@
 // src/mcp/prompts.ts
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import { ContextStore } from '../core/context-store.js';
 import { MemoryManager } from '../core/memory-manager.js';
 
@@ -14,23 +15,20 @@ export function registerPrompts(
     'project-briefing',
     '为 AI 生成当前项目的完整简报，帮助 AI 快速了解项目背景',
     {
-      projectId: {
-        type: 'string',
-        description: '项目 ID'
-      }
+      projectId: z.string().describe('项目 ID'),
     },
     async (params) => {
       try {
-        const { projectId } = params || {};
+        const { projectId } = params;
         const project = await contextStore.getProject(projectId);
         const userProfile = await contextStore.getUserProfile();
         
         if (!project) {
           return {
             messages: [{
-              role: "user",
+              role: "user" as const,
               content: {
-                type: "text",
+                type: "text" as const,
                 text: `项目 '${projectId}' 不存在。`,
               },
             }],
@@ -111,9 +109,9 @@ export function registerPrompts(
 
         return {
           messages: [{
-            role: "user",
+            role: "user" as const,
             content: {
-              type: "text",
+              type: "text" as const,
               text: briefing,
             },
           }],
@@ -121,9 +119,9 @@ export function registerPrompts(
       } catch (error) {
         return {
           messages: [{
-            role: "user",
+            role: "user" as const,
             content: {
-              type: "text",
+              type: "text" as const,
               text: `生成项目简报时出错: ${(error as Error).message}`,
             },
           }],
@@ -137,21 +135,18 @@ export function registerPrompts(
     'code-review-context',
     '为代码审查注入项目架构决策和编码规范',
     {
-      projectId: {
-        type: 'string',
-        description: '项目 ID'
-      }
+      projectId: z.string().describe('项目 ID'),
     },
     async (params) => {
       try {
-        const { projectId } = params || {};
+        const { projectId } = params;
         const project = await contextStore.getProject(projectId);
         if (!project) {
           return {
             messages: [{
-              role: "user",
+              role: "user" as const,
               content: {
-                type: "text",
+                type: "text" as const,
                 text: `项目 '${projectId}' 不存在。`,
               },
             }],
@@ -214,9 +209,9 @@ export function registerPrompts(
 
         return {
           messages: [{
-            role: "user",
+            role: "user" as const,
             content: {
-              type: "text",
+              type: "text" as const,
               text: context,
             },
           }],
@@ -224,9 +219,9 @@ export function registerPrompts(
       } catch (error) {
         return {
           messages: [{
-            role: "user",
+            role: "user" as const,
             content: {
-              type: "text",
+              type: "text" as const,
               text: `生成代码审查上下文时出错: ${(error as Error).message}`,
             },
           }],

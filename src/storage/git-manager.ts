@@ -1,8 +1,9 @@
 // src/storage/git-manager.ts
 import simpleGit, { SimpleGit } from 'simple-git';
+import fs from 'fs/promises';
 import path from 'path';
-import { ConfigManager } from './config-manager';
-import { HistoryOptions, HistoryEntry, DiffResult, RollbackOptions } from '../types/config';
+import { ConfigManager } from './config-manager.js';
+import { HistoryOptions, HistoryEntry, DiffResult, RollbackOptions } from '../types/config.js';
 
 export class GitManager {
   private git: SimpleGit;
@@ -200,7 +201,7 @@ export class GitManager {
       '.DS_Store',
     ].join('\n');
     const gitignorePath = path.join(this.pclHome, '.gitignore');
-    await require('fs').promises.writeFile(gitignorePath, content);
+    await fs.writeFile(gitignorePath, content, 'utf-8');
   }
 
   /**

@@ -1,8 +1,7 @@
 // src/mcp/resources.ts
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ContextStore } from '../core/context-store';
-import { MemoryManager } from '../core/memory-manager';
-import { join } from 'path';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ContextStore } from '../core/context-store.js';
+import { MemoryManager } from '../core/memory-manager.js';
 
 export function registerResources(
   server: McpServer,
@@ -10,12 +9,13 @@ export function registerResources(
   memoryManager: MemoryManager
 ): void {
 
-  // 用户档案资源
+  // 用户档案资源（固定 URI，无模板变量）
   server.resource(
     "user-profile",
     "pcl://contexts/user-profile",
     { 
-      description: "用户个人档案，包含技能、偏好、工作风格" 
+      description: "用户个人档案，包含技能、偏好、工作风格",
+      mimeType: "text/yaml",
     },
     async () => {
       try {
@@ -42,22 +42,34 @@ export function registerResources(
     }
   );
 
-  // 项目上下文资源
+  // 项目上下文资源（使用 ResourceTemplate 处理 URI 模板变量）
   server.resource(
     "project-context",
-    "pcl://contexts/projects/{projectId}",
-    { 
-      description: "项目上下文信息", 
-      parameters: {
-        projectId: {
-          type: "string",
-          description: "项目ID"
+    new ResourceTemplate("pcl://contexts/projects/{projectId}", {
+      list: async () => {
+        // 列出所有项目资源
+        try {
+          const projects = await contextStore.listProjects();
+          return {
+            resources: projects.map(p => ({
+              uri: `pcl://contexts/projects/${p.id}`,
+              name: p.name || p.id,
+              description: p.description,
+              mimeType: "text/yaml",
+            })),
+          };
+        } catch {
+          return { resources: [] };
         }
-      }
+      },
+    }),
+    { 
+      description: "项目上下文信息",
+      mimeType: "text/yaml",
     },
-    async (_, params) => {
+    async (uri, variables) => {
       try {
-        const projectId = params?.projectId;
+        const projectId = variables.projectId as string;
         if (!projectId) {
           throw new Error("Missing projectId parameter");
         }
@@ -72,7 +84,7 @@ export function registerResources(
         
         return {
           contents: [{
-            uri: `pcl://contexts/projects/${projectId}`,
+            uri: uri.href,
             mimeType: "text/yaml",
             text: yamlText,
           }],
@@ -80,7 +92,7 @@ export function registerResources(
       } catch (error) {
         return {
           contents: [{
-            uri: `pcl://contexts/projects/${params?.projectId || 'unknown'}`,
+            uri: uri.href,
             mimeType: "text/plain",
             text: `Error loading project context: ${(error as Error).message}`,
           }],
@@ -89,16 +101,16 @@ export function registerResources(
     }
   );
 
-  // 最近记忆资源
+  // 最近记忆资源（固定 URI，无模板变量）
   server.resource(
     "recent-memories",
     "pcl://memories/recent",
     { 
-      description: "最近 7 天的记忆条目" 
+      description: "最近 7 天的记忆条目",
+      mimeType: "text/markdown",
     },
     async () => {
       try {
-        // 获取最近7天的记忆
         const since = new Date();
         since.setDate(since.getDate() - 7);
         
@@ -117,7 +129,6 @@ export function registerResources(
           };
         }
         
-        // 格式化为markdown
         const markdownContent = entries.map(entry => {
           const dateStr = new Date(entry.createdAt).toLocaleDateString('zh-CN');
           const tagsStr = entry.tags && entry.tags.length > 0 ? ` (${entry.tags.join(', ')})` : '';
